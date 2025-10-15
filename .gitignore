@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+
+# Project-specific exclusions
+AGENTS.md
+tony-setup-style.json
+k3ssmem-project.json
