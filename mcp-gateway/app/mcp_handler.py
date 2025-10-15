@@ -69,6 +69,56 @@ async def handle_mcp_request(request_body: dict, neo4j_client: Neo4jClient) -> d
                     },
                     "required": ["relations"]
                 }
+            },
+            {
+                "name": "add_observations",
+                "description": "Add new observations to existing entities in the knowledge graph.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "observations": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "entityName": {"type": "string", "description": "The name of the entity to add the observations to"},
+                                    "contents": {"type": "array", "items": {"type": "string"}, "description": "An array of observation contents to add"},
+                                    "strength": {"type": "number", "description": "Strength value (0.0 to 1.0) for this specific observation"},
+                                    "confidence": {"type": "number", "description": "Confidence level (0.0 to 1.0) for this specific observation"},
+                                    "metadata": {"type": "object", "description": "Metadata for this specific observation"}
+                                },
+                                "required": ["entityName", "contents"]
+                            }
+                        },
+                        "strength": {"type": "number", "description": "Default strength value (0.0 to 1.0) for all observations"},
+                        "confidence": {"type": "number", "description": "Default confidence level (0.0 to 1.0) for all observations"},
+                        "metadata": {"type": "object", "description": "Default metadata for all observations"}
+                    },
+                    "required": ["observations"]
+                }
+            },
+            {
+                "name": "read_graph",
+                "description": "Read the entire knowledge graph.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "open_nodes",
+                "description": "Open specific nodes in the knowledge graph by their names.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "names": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "An array of entity names to retrieve"
+                        }
+                    },
+                    "required": ["names"]
+                }
             }
         ]
         return {"jsonrpc": "2.0", "result": {"tools": tools}, "id": request_id}
@@ -143,6 +193,59 @@ async def handle_mcp_request(request_body: dict, neo4j_client: Neo4jClient) -> d
                 return {
                     "jsonrpc": "2.0",
                     "error": {"code": -32000, "message": f"Error creating relations: {e}"},
+                    "id": request_id
+                }
+        elif tool_name == "add_observations":
+            try:
+                observations_to_add = tool_args.get("observations", [])
+                if not observations_to_add:
+                    raise ValueError("The 'observations' array cannot be empty.")
+                
+                added_observations = await neo4j_client.add_observations(observations_to_add)
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "result": {"content": [{"type": "text", "text": f"Successfully added {len(added_observations)} observations."}]},
+                    "id": request_id
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": f"Error adding observations: {e}"},
+                    "id": request_id
+                }
+        elif tool_name == "read_graph":
+            try:
+                graph_data = await neo4j_client.read_graph()
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "result": {"content": [{"type": "json", "json": graph_data}]},
+                    "id": request_id
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": f"Error reading graph: {e}"},
+                    "id": request_id
+                }
+        elif tool_name == "open_nodes":
+            try:
+                names = tool_args.get("names", [])
+                if not names:
+                    raise ValueError("The 'names' array cannot be empty.")
+                
+                nodes_data = await neo4j_client.open_nodes(names)
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "result": {"content": [{"type": "json", "json": nodes_data}]},
+                    "id": request_id
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": f"Error opening nodes: {e}"},
                     "id": request_id
                 }
         else:
