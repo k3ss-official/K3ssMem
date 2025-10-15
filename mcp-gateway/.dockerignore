@@ -37,7 +37,7 @@ htmlcov/
 *~
 
 # Environment
-.env
+# .env  # Commented out - we need this in the container
 .env.local
 
 # Documentation (already in image)

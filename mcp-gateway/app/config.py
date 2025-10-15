@@ -1,8 +1,14 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 class Settings(BaseSettings):
     # Model for environment variables. Case-insensitive.
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # Only try to load .env if it exists (for local dev)
+    model_config = SettingsConfigDict(
+        env_file=".env" if os.path.exists(".env") else None,
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
     # Neo4j connection settings
     NEO4J_URI: str = "bolt://localhost:7687"
