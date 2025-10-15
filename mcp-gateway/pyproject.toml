@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "mcp-gateway"
+version = "0.1.0"
+description = "The Borg Collective Memory System - Composite MCP Server"
+authors = ["K3SS x Gemini"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.111.1"
+uvicorn = {extras = ["standard"], version = "^0.30.3"}
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+websockets = "^12.0"
+# For Neo4j
+neo4j = "^5.22.0"
+# For OpenAI Embeddings
+openai = "^1.35.10"
+# For structured logging
+structlog = "^24.3.0"
+pydantic-settings = "^2.3.4"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
