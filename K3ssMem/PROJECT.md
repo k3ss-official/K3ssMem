@@ -98,7 +98,7 @@ Confirm: Entity removed from graph
 
 ```bash
 # 1. Navigate to project
-cd /Volumes/deep-1t/Users/k3ss/projects/tools/mcp/mcp-gateway
+cd /Volumes/deep-1t/Users/k3ss/projects/tools/mcp/K3ssMem
 
 # 2. Start services
 docker compose -f docker-compose.host-ollama.yml up -d
@@ -122,7 +122,7 @@ curl -X POST http://localhost:8000/mcp \
 ```json
 {
   "command": "/opt/homebrew/Caskroom/miniforge/base/envs/K3ssMem/bin/python",
-  "args": ["/Volumes/deep-1t/Users/k3ss/projects/tools/mcp/mcp-gateway/stdio_server.py"],
+  "args": ["/Volumes/deep-1t/Users/k3ss/projects/tools/mcp/K3ssMem/stdio_server.py"],
   "env": {},
   "useBuiltInNode": false
 }

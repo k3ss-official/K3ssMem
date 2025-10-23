@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "mcp-gateway"
+name = "K3ssMem"
 version = "0.1.0"
-description = "The Borg Collective Memory System - Composite MCP Server"
-authors = ["K3SS x Gemini"]
+description = "K3ssMem - Persistent Knowledge Graph Memory for AI Assistants"
+authors = ["K3SS"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
