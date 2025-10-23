@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Use this compose file if you already have Ollama running on your host machine
 # Usage: docker-compose -f docker-compose.host-ollama.yml up -d
 

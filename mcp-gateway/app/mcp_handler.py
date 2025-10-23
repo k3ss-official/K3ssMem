@@ -8,7 +8,28 @@ async def handle_mcp_request(request_body: dict, neo4j_client: Neo4jClient) -> d
     params = request_body.get("params", {})
     request_id = request_body.get("id")
 
-    if method == "listTools":
+    if method == "initialize":
+        # MCP initialization handshake
+        return {
+            "jsonrpc": "2.0",
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "borg-collective-memory",
+                    "version": "0.1.0"
+                }
+            },
+            "id": request_id
+        }
+    
+    elif method == "notifications/initialized":
+        # Client confirms initialization - no response needed for notifications
+        return None
+    
+    elif method == "tools/list":
         # Define the tools our server exposes
         tools = [
             {
@@ -118,6 +139,68 @@ async def handle_mcp_request(request_body: dict, neo4j_client: Neo4jClient) -> d
                         }
                     },
                     "required": ["names"]
+                }
+            },
+            {
+                "name": "delete_entities",
+                "description": "⚠️ DELETE entities and all their relationships. REQUIRES USER APPROVAL.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "entityNames": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Names of entities to delete"
+                        }
+                    },
+                    "required": ["entityNames"]
+                }
+            },
+            {
+                "name": "delete_relations",
+                "description": "⚠️ DELETE specific relationships between entities. REQUIRES USER APPROVAL.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "relations": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "from": {"type": "string"},
+                                    "to": {"type": "string"},
+                                    "relationType": {"type": "string", "description": "Optional: specific relation type to delete"}
+                                },
+                                "required": ["from", "to"]
+                            }
+                        }
+                    },
+                    "required": ["relations"]
+                }
+            },
+            {
+                "name": "delete_observations",
+                "description": "⚠️ DELETE specific observations from entities. REQUIRES USER APPROVAL.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "deletions": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "entityName": {"type": "string"},
+                                    "observations": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Specific observations to remove"
+                                    }
+                                },
+                                "required": ["entityName", "observations"]
+                            }
+                        }
+                    },
+                    "required": ["deletions"]
                 }
             }
         ]
@@ -246,6 +329,63 @@ async def handle_mcp_request(request_body: dict, neo4j_client: Neo4jClient) -> d
                 return {
                     "jsonrpc": "2.0",
                     "error": {"code": -32000, "message": f"Error opening nodes: {e}"},
+                    "id": request_id
+                }
+        elif tool_name == "delete_entities":
+            try:
+                entity_names = tool_args.get("entityNames", [])
+                if not entity_names:
+                    raise ValueError("The 'entityNames' array cannot be empty.")
+                
+                result = await neo4j_client.delete_entities(entity_names)
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "result": {"content": [{"type": "text", "text": f"⚠️ Deleted {result['deleted']} entities: {', '.join(entity_names)}"}]},
+                    "id": request_id
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": f"Error deleting entities: {e}"},
+                    "id": request_id
+                }
+        elif tool_name == "delete_relations":
+            try:
+                relations = tool_args.get("relations", [])
+                if not relations:
+                    raise ValueError("The 'relations' array cannot be empty.")
+                
+                result = await neo4j_client.delete_relations(relations)
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "result": {"content": [{"type": "text", "text": f"⚠️ Deleted {result['deleted']} relationships"}]},
+                    "id": request_id
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": f"Error deleting relations: {e}"},
+                    "id": request_id
+                }
+        elif tool_name == "delete_observations":
+            try:
+                deletions = tool_args.get("deletions", [])
+                if not deletions:
+                    raise ValueError("The 'deletions' array cannot be empty.")
+                
+                result = await neo4j_client.delete_observations(deletions)
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "result": {"content": [{"type": "text", "text": f"⚠️ Deleted {result['deleted']} observations"}]},
+                    "id": request_id
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": f"Error deleting observations: {e}"},
                     "id": request_id
                 }
         else:

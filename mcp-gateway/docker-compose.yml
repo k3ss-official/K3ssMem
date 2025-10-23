@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Borg Collective Memory MCP Server
   mcp-server:

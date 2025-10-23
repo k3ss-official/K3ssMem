@@ -354,3 +354,125 @@ class Neo4jClient:
             "total": len(entities),
             "timeTaken": time_taken
         }
+# Deletion methods to be added to Neo4jClient class
+
+    async def delete_entities(self, entity_names: list[str]) -> dict:
+        """Delete entities and all their relationships from the graph."""
+        import time
+        start_time = time.time()
+        
+        if not entity_names:
+            return {"deleted": 0, "message": "No entities specified"}
+        
+        async with self.driver.session() as session:
+            # Delete entities and their relationships
+            delete_query = """
+            MATCH (e:Entity)
+            WHERE e.name IN $names
+            DETACH DELETE e
+            RETURN count(e) as deleted_count
+            """
+            
+            result = await session.run(delete_query, {"names": entity_names})
+            record = await result.single()
+            deleted_count = record["deleted_count"] if record else 0
+        
+        time_taken = (time.time() - start_time) * 1000
+        
+        return {
+            "deleted": deleted_count,
+            "entities": entity_names,
+            "timeTaken": time_taken
+        }
+    
+    async def delete_relations(self, relations: list[dict]) -> dict:
+        """Delete specific relationships between entities."""
+        import time
+        start_time = time.time()
+        
+        if not relations:
+            return {"deleted": 0, "message": "No relations specified"}
+        
+        deleted_count = 0
+        async with self.driver.session() as session:
+            for rel in relations:
+                from_name = rel.get("from")
+                to_name = rel.get("to")
+                rel_type = rel.get("relationType")
+                
+                if not from_name or not to_name:
+                    continue
+                
+                # Build query based on whether relationType is specified
+                if rel_type:
+                    delete_query = """
+                    MATCH (from:Entity {name: $from_name})-[r:RELATES_TO]->(to:Entity {name: $to_name})
+                    WHERE r.relationType = $rel_type
+                    DELETE r
+                    RETURN count(r) as deleted_count
+                    """
+                    result = await session.run(delete_query, {
+                        "from_name": from_name,
+                        "to_name": to_name,
+                        "rel_type": rel_type
+                    })
+                else:
+                    delete_query = """
+                    MATCH (from:Entity {name: $from_name})-[r:RELATES_TO]->(to:Entity {name: $to_name})
+                    DELETE r
+                    RETURN count(r) as deleted_count
+                    """
+                    result = await session.run(delete_query, {
+                        "from_name": from_name,
+                        "to_name": to_name
+                    })
+                
+                record = await result.single()
+                deleted_count += record["deleted_count"] if record else 0
+        
+        time_taken = (time.time() - start_time) * 1000
+        
+        return {
+            "deleted": deleted_count,
+            "relations": relations,
+            "timeTaken": time_taken
+        }
+    
+    async def delete_observations(self, deletions: list[dict]) -> dict:
+        """Delete specific observations from entities."""
+        import time
+        start_time = time.time()
+        
+        if not deletions:
+            return {"deleted": 0, "message": "No deletions specified"}
+        
+        deleted_count = 0
+        async with self.driver.session() as session:
+            for deletion in deletions:
+                entity_name = deletion.get("entityName")
+                observations_to_remove = deletion.get("observations", [])
+                
+                if not entity_name or not observations_to_remove:
+                    continue
+                
+                # Remove specific observations from the entity
+                delete_query = """
+                MATCH (e:Entity {name: $entity_name})
+                SET e.observations = [obs IN e.observations WHERE NOT obs IN $observations_to_remove]
+                RETURN size($observations_to_remove) as deleted_count
+                """
+                
+                result = await session.run(delete_query, {
+                    "entity_name": entity_name,
+                    "observations_to_remove": observations_to_remove
+                })
+                record = await result.single()
+                deleted_count += record["deleted_count"] if record else 0
+        
+        time_taken = (time.time() - start_time) * 1000
+        
+        return {
+            "deleted": deleted_count,
+            "deletions": deletions,
+            "timeTaken": time_taken
+        }
